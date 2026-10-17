@@ -30,10 +30,10 @@
  const belongsToPage=p=>!pageRealm||(pageRealm==='content-analysis'?['content','data','product','visual'].includes(p.realm):p.realm===pageRealm);
  let activeFilter='all';
  function renderProjects(){
-  const blogs=state.projects.filter(x=>x.realm==='blogs'&&(!/^Blog draft [0-9]+$/.test(x.title)||x.externalUrl));
+  const blogs=state.projects.filter(x=>x.realm==='blogs');
   $('#featured-grid').replaceChildren(...blogs.slice(0,2).map(card));
   if(!blogs.length){const note=element('div','featured-blog-note');note.append(element('p','eyebrow','BLOGS & ESSAYS'),element('h3','','The next story is taking shape.'));const link=element('a','button','Visit the blog realm ↗');link.href='blogs.html';note.append(link);$('#featured-grid').append(note);}
-  const list=document.body.dataset.categoryHub?[]:state.projects.filter(x=>belongsToPage(x)&&(activeFilter==='all'||activeFilter==='content-analysis'||x.realm===activeFilter)&&(x.realm!=='blogs'||!/^Blog draft [0-9]+$/.test(x.title)||x.externalUrl));
+  const list=document.body.dataset.categoryHub?[]:state.projects.filter(x=>belongsToPage(x)&&(activeFilter==='all'||activeFilter==='content-analysis'||x.realm===activeFilter));
   if($('#blogs-empty'))$('#blogs-empty').hidden=list.length>0;
   $('#all-projects').replaceChildren(...list.map(card));
   if($('#work-count'))$('#work-count').textContent=String(state.projects.length).padStart(2,'0');

@@ -89,3 +89,27 @@ for(const scene of document.querySelectorAll('.personal-hero,.section,.work-fiel
  gate.addEventListener('pointermove',event=>{if(event.pointerType!=='touch'||gate.classList.contains('travelling')||document.documentElement.classList.contains('motion-paused')||frame)return;const x=event.clientX/innerWidth-.5,y=event.clientY/innerHeight-.5;frame=requestAnimationFrame(()=>{gate.style.setProperty('--touch-x',String(x));gate.style.setProperty('--touch-y',String(y));frame=0;});},{passive:true});
  gate.addEventListener('pointerup',()=>{gate.style.setProperty('--touch-x','0');gate.style.setProperty('--touch-y','0');},{passive:true});
 })();
+
+// Render the background image itself each frame; independent of CSS keyframes.
+(() => {
+ const gate=document.getElementById('entrance');if(!gate)return;
+ const canvas=document.createElement('canvas');canvas.className='entrance-image-motion';canvas.setAttribute('aria-hidden','true');gate.insertBefore(canvas,gate.querySelector('.entry-shade'));
+ const ctx=canvas.getContext('2d',{alpha:false});if(!ctx){canvas.remove();return;}
+ const glow=document.createElement('canvas'),gx=glow.getContext('2d');
+ let image=null,imagePath='',w=1,h=1,dpr=1,frame=0,last=0,elapsed=0,targetX=0,targetY=0,px=0,py=0,mask=null;
+ const stopped=()=>gate.hidden||document.hidden||document.documentElement.classList.contains('motion-paused');
+ function selectImage(){const value=getComputedStyle(gate).getPropertyValue('--spiral-scene').trim();const path=value.replace(/^url\(["']?|["']?\)$/g,'');if(!path||path===imagePath)return;imagePath=path;const next=new Image();next.onload=()=>{if(path!==imagePath)return;image=next;gate.classList.add('canvas-background-ready');sync();};next.onerror=()=>{if(path===imagePath)imagePath='';};next.src=path;}
+ function resize(){const r=gate.getBoundingClientRect();w=Math.max(1,r.width||innerWidth);h=Math.max(1,r.height||innerHeight);dpr=Math.min(devicePixelRatio||1,w<1025?1.25:1.5);canvas.width=glow.width=Math.round(w*dpr);canvas.height=glow.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);if(gx){gx.setTransform(dpr,0,0,dpr,0,0);mask=gx.createRadialGradient(w*.5,h*.5,0,w*.5,h*.5,Math.min(w,h)*.62);mask.addColorStop(0,'rgba(255,255,255,.8)');mask.addColorStop(.4,'rgba(255,255,255,.48)');mask.addColorStop(1,'rgba(255,255,255,0)');}selectImage();sync();}
+ function paint(target,scale,angle,x,y){const cover=Math.max(w/image.naturalWidth,h/image.naturalHeight)*scale;target.save();target.translate(w/2+x,h/2+y);target.rotate(angle);target.drawImage(image,-image.naturalWidth*cover/2,-image.naturalHeight*cover/2,image.naturalWidth*cover,image.naturalHeight*cover);target.restore();}
+ function render(now){frame=0;if(!image||gate.hidden)return;if(last&&now-last<30&&!stopped()){frame=requestAnimationFrame(render);return;}const dt=Math.min(50,now-last||16);last=now;if(!stopped())elapsed+=dt;const t=elapsed/1000;const smooth=1-Math.exp(-dt/130);px+=(targetX-px)*smooth;py+=(targetY-py)*smooth;
+  ctx.fillStyle='#05282d';ctx.fillRect(0,0,w,h);
+  const pan=Math.min(w,h)*.018;paint(ctx,1.12+Math.sin(t*.55)*.045,Math.sin(t*.24)*.008,Math.sin(t*.42)*pan+px*pan,Math.cos(t*.34)*pan+py*pan);
+  if(gx){gx.globalCompositeOperation='source-over';gx.clearRect(0,0,w,h);paint(gx,1.14+Math.sin(t*.55)*.045,Math.sin(t*.38)*.055,Math.sin(t*.42)*pan,Math.cos(t*.34)*pan);gx.globalCompositeOperation='destination-in';gx.fillStyle=mask;gx.fillRect(0,0,w,h);ctx.save();ctx.globalCompositeOperation='screen';ctx.globalAlpha=.24;ctx.drawImage(glow,0,0,w,h);ctx.restore();}
+  if(!stopped())frame=requestAnimationFrame(render);
+ }
+ function sync(){cancelAnimationFrame(frame);frame=0;last=0;if(image&&!gate.hidden)render(performance.now());}
+ gate.addEventListener('pointermove',e=>{if(stopped())return;targetX=Math.max(-.5,Math.min(.5,e.clientX/w-.5));targetY=Math.max(-.5,Math.min(.5,e.clientY/h-.5));},{passive:true});
+ const reset=()=>{targetX=0;targetY=0;};gate.addEventListener('pointerleave',reset);gate.addEventListener('pointerup',reset);
+ addEventListener('resize',resize);addEventListener('orientationchange',resize);addEventListener('pageshow',resize);document.addEventListener('visibilitychange',sync);if(window.visualViewport)window.visualViewport.addEventListener('resize',resize);
+ new MutationObserver(sync).observe(document.documentElement,{attributes:true,attributeFilter:['class']});new MutationObserver(sync).observe(gate,{attributes:true,attributeFilter:['hidden']});gate.addEventListener('journeyend',sync);resize();
+})();
