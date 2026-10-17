@@ -66,8 +66,8 @@
  nav.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{nav.classList.remove('open');menu.setAttribute('aria-expanded','false');}));
  document.addEventListener('keydown',e=>{if(e.key==='Escape'){nav.classList.remove('open');menu.setAttribute('aria-expanded','false');}});
  const reduced=matchMedia('(prefers-reduced-motion: reduce)');let paused=reduced.matches;
- function setMotion(){document.documentElement.classList.toggle('motion-paused',paused);document.documentElement.classList.toggle('motion-enabled',!paused);$('#motion').setAttribute('aria-pressed',String(paused));$('#motion').textContent=paused?'Resume motion ▷':'Pause motion Ⅱ';if(paused)$$('.depth').forEach(el=>el.style.transform='none');}
- $('#motion').addEventListener('click',()=>{paused=!paused;setMotion();});reduced.addEventListener('change',e=>{paused=e.matches;setMotion();});setMotion();
+ function setMotion(){document.documentElement.classList.toggle('motion-paused',paused);document.documentElement.classList.toggle('motion-enabled',!paused);$('#motion')?.setAttribute('aria-pressed',String(paused));if($('#motion'))$('#motion').textContent=paused?'Resume motion ▷':'Pause motion Ⅱ';if(paused)$$('.depth').forEach(el=>el.style.transform='none');}
+ $('#motion')?.addEventListener('click',()=>{paused=!paused;setMotion();});reduced.addEventListener('change',e=>{paused=e.matches;setMotion();});setMotion();
  if(!paused)document.documentElement.classList.add('enhanced');
  const observe=()=>{if(!('IntersectionObserver'in window)){document.documentElement.classList.remove('enhanced');return;}const ob=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');ob.unobserve(e.target);} }),{threshold:.07});$$('.reveal').forEach(e=>ob.observe(e));};
  const entrance=$('#entrance');

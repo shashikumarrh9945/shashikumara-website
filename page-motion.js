@@ -12,7 +12,7 @@
   records.set(el,{animation,visible:false,isEntry});
  }
  document.querySelectorAll('.background-layer').forEach((el,i)=>{
-  if(el.classList.contains('hero-sun'))add(el,[{transform:'translate3d(-8px,5px,0) scale(1)',opacity:1},{transform:'translate3d(8px,-6px,0) scale(1)',opacity:1}],6500);
+  if(el.classList.contains('hero-sun')){el.style.setProperty('animation','none','important');}
   else if(el.classList.contains('hero-wave'))add(el,[{transform:'translate3d(-18px,5px,0) scale(1.06)'},{transform:'translate3d(18px,-6px,0) scale(1.085)'}],6500);
   else add(el,[{transform:'translate3d(-9px,5px,0) scale(1.045)'},{transform:'translate3d(11px,-8px,0) scale(1.085)'}],6500+(i%3)*1300);
  });

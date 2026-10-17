@@ -1,0 +1,6 @@
+/* Gentle, single reveals. No additional photo layers or travelling disk. */
+html:not(.owner-edit-session) .studio-launch,html:not(.owner-edit-session) #studio-open,html:not(.owner-edit-session) #category-edit-open,html:not(.owner-edit-session) #accounting-edit-open,html:not(.owner-edit-session) #studio{display:none!important}
+.origin .portrait-composition{translate:none!important;transform:none!important;animation:none!important}
+.origin .portrait-composition img{translate:none!important;transform:none!important;animation:none!important}
+.origin .portrait-dream,.origin .portrait-prism,.origin .portrait-aura,.origin .portrait-orbit,.origin .portrait-satellite,.origin .portrait-gloss,.origin .portrait-screen-glow{display:none!important}
+.personal-hero .hero-sun{animation:none!important;transform:none!important;translate:none!important}
