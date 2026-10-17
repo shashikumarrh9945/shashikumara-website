@@ -39,24 +39,44 @@
   button.addEventListener('pointerleave',()=>button.style.translate='0 0');
  });
 })();
-// A continuous wind field carries sand across the entire entrance, before and during entry.
+// One bounded render loop drives three sand depths and the layered artwork.
 (() => {
  const gate=document.getElementById('entrance'),canvas=document.getElementById('sand-drift');
- if(!gate||!canvas)return;const ctx=canvas.getContext('2d');if(!ctx)return;
- let w=1,h=1,frame=0,last=0,clock=0;
- const groups=Array.from({length:3},(_,depth)=>Array.from({length:innerWidth<1025?120:250},()=>({x:Math.random(),y:Math.random(),phase:Math.random()*6.283,speed:.6+Math.random()*.8,size:.5+Math.random()*(depth+1)*.5})));
+ if(!gate||!canvas)return;
+ const art=gate.querySelector('.entry-art');
+ if(art&&!art.querySelector('.spiral-artwork')){for(const name of ['spiral-artwork','spiral-focus']){const layer=document.createElement('div');layer.className=name;layer.setAttribute('aria-hidden','true');art.append(layer);}}
+ const ctx=canvas.getContext('2d');if(!ctx)return;
+ let w=1,h=1,frame=0,last=0,clock=0,px=0,py=0,tx=0,ty=0;
+ const compact=()=>innerWidth<=1024;
+ const grains=Array.from({length:compact()?210:390},(_,i)=>({depth:i%3,x:Math.random(),y:Math.random(),phase:Math.random()*Math.PI*2,speed:.65+Math.random()*.65,size:.4+Math.random()*1.15}));
  const frozen=()=>document.hidden||document.documentElement.classList.contains('motion-paused');
- function size(){w=innerWidth;h=innerHeight;const d=Math.min(devicePixelRatio||1,innerWidth<1025?1:1.5);canvas.width=Math.round(w*d);canvas.height=Math.round(h*d);ctx.setTransform(d,0,0,d,0,0);}
- function draw(now){frame=0;if(gate.hidden)return;if(last&&now-last<32&&!frozen()){frame=requestAnimationFrame(draw);return;}const dt=Math.min(64,now-last||32);last=now;if(!frozen())clock+=dt;
-  const seconds=clock/1000,t=gate.flightProgress?gate.flightProgress():0;ctx.clearRect(0,0,w,h);
-  groups.forEach((grains,depth)=>{ctx.fillStyle=['#c4a575','#dfc18d','#f4deb0'][depth];ctx.globalAlpha=[.25,.4,.55][depth];
-   for(const g of grains){const flow=seconds*(.045+depth*.025)*g.speed;let x=((g.x+flow)%1)*(w+80)-40;let y=g.y*h+Math.sin(seconds*.8+g.phase+g.x*5)*(12+depth*7);x+=(g.x-.5)*t*95;y+=Math.sin(g.phase)*t*24;const radius=g.size;ctx.fillRect(x,y,radius*(1+depth*.25),radius);if(depth===2)ctx.fillRect(x-radius*3,y+1,radius*2,.5);}
-  });ctx.globalAlpha=1;if(!frozen())frame=requestAnimationFrame(draw);
+ function size(){const rect=gate.getBoundingClientRect();w=Math.max(1,rect.width||innerWidth);h=Math.max(1,rect.height||innerHeight);const d=Math.min(devicePixelRatio||1,compact()?1.25:1.5);canvas.width=Math.round(w*d);canvas.height=Math.round(h*d);ctx.setTransform(d,0,0,d,0,0);}
+ gate.addEventListener('pointermove',e=>{if(frozen()||gate.classList.contains('travelling'))return;tx=Math.max(-1,Math.min(1,(e.clientX/w-.5)*2));ty=Math.max(-1,Math.min(1,(e.clientY/h-.5)*2));},{passive:true});
+ const release=()=>{tx=0;ty=0;};gate.addEventListener('pointerleave',release);gate.addEventListener('pointerup',release);gate.addEventListener('pointercancel',release);
+ function draw(now){frame=0;if(gate.hidden)return;if(last&&now-last<30&&!frozen()){frame=requestAnimationFrame(draw);return;}
+  const dt=Math.min(50,now-last||16);last=now;if(!frozen())clock+=dt;
+  const sec=clock/1000,travel=gate.flightProgress?gate.flightProgress():0;
+  const blend=1-Math.exp(-dt/110);px+=(tx-px)*blend;py+=(ty-py)*blend;
+  if(!frozen()){const span=compact()?2:4;gate.style.setProperty('--spiral-x',(px*span+Math.sin(sec*.32)*2).toFixed(2)+'px');gate.style.setProperty('--spiral-y',(py*span+Math.cos(sec*.28)*2).toFixed(2)+'px');gate.style.setProperty('--spiral-turn',(Math.sin(sec*.22)*.35).toFixed(3)+'deg');}
+  ctx.clearRect(0,0,w,h);
+  for(const g of grains){const depth=g.depth,wind=sec*(.035+depth*.022)*g.speed;
+   let x=((g.x+wind)%1)*(w+60)-30,y=((g.y+Math.sin(sec*.48+g.phase)*.012+sec*.003*(depth+1))%1)*h;
+   y+=Math.sin(x/w*8+sec*.8+g.phase)*(7+depth*5);
+   x+=(g.x-.5)*travel*w*.22;y+=(g.y-.5)*travel*h*.12;
+   ctx.fillStyle=['#b69c69','#dfbd77','#ffe2a5'][depth];ctx.globalAlpha=[.22,.38,.58][depth]*(.8+.2*Math.sin(g.phase+sec));
+   ctx.fillRect(x,y,g.size*(1+depth*.28),g.size);
+   if(depth===2){ctx.globalAlpha=.14;ctx.fillRect(x-g.size*4,y,g.size*3,.6);}
+  }
+  ctx.globalAlpha=1;if(!frozen())frame=requestAnimationFrame(draw);
  }
- function sync(){cancelAnimationFrame(frame);last=0;draw(performance.now());}
- addEventListener('resize',()=>{size();sync();});document.addEventListener('visibilitychange',sync);
+ function sync(){cancelAnimationFrame(frame);frame=0;last=0;if(!gate.hidden)draw(performance.now());}
+ function resize(){size();sync();}
+ if('ResizeObserver'in window)new ResizeObserver(resize).observe(gate);
+ if(window.visualViewport)window.visualViewport.addEventListener('resize',resize);
+ addEventListener('resize',resize);addEventListener('orientationchange',resize);addEventListener('pageshow',resize);document.addEventListener('visibilitychange',sync);
  new MutationObserver(sync).observe(document.documentElement,{attributes:true,attributeFilter:['class']});
- gate.addEventListener('journeyend',()=>{cancelAnimationFrame(frame);ctx.clearRect(0,0,w,h);});size();sync();
+ new MutationObserver(sync).observe(gate,{attributes:true,attributeFilter:['hidden']});
+ gate.addEventListener('journeyend',()=>{cancelAnimationFrame(frame);frame=0;ctx.clearRect(0,0,w,h);});size();sync();
 })();
 // Each realm carries its own slowly shifting light above the supplied background art.
 for(const scene of document.querySelectorAll('.personal-hero,.section,.work-field')){
